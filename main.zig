@@ -13,6 +13,51 @@ pub fn main() !void {
     debug.warn("01-1: {}\n", total_sum(input01));
     debug.warn("01-2: {}\n", first_visited_twice(input01));
     debug.warn("02-1: {}\n", checksum(input_02));
+    common_chars(input_02);
+}
+
+fn common_chars(ids: [] const [] const u8) void {
+    for (ids) |id, i| {
+        outer: for (ids[i + 1..]) |id2, j| {
+            if (i != j) {
+                debug.assert(id.len == id2.len);
+                var distance: u32 = 0;
+                for (id) |char, k| {
+                    if (char != id2[k]) {
+                        distance += 1;
+                    }
+                    if (distance > 1) {
+                        continue :outer;
+                    }
+                }
+                if (distance == 1) {
+                    //debug.warn("{}\n", id);
+                    //debug.warn("{}\n", id2);
+                    for (id) |char, x| {
+                        if (char == id2[x]) {
+                            debug.warn("{c}", char);
+                        }
+                    }
+                    debug.warn("\n");
+
+                    break;
+                }
+            }
+        }
+    }
+}
+
+test "common chars" {
+    const ids = [] const [] const u8 {
+        "abcde",
+        "fghij",
+        "klmno",
+        "pqrst",
+        "fguij",
+        "axcye",
+        "wvxyz",
+    };
+    common_chars(ids);
 }
 
 fn checksum(input: [] const [] const u8) u32{
