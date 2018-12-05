@@ -2,7 +2,9 @@ const std = @import("std");
 const debug = std.debug;
 
 pub fn main() void {
-    debug.warn("02-1: {}\n", checksum(input_02));
+    var result = checksum(input_02);
+    debug.assert(result == 4712);
+    debug.warn("02-1: {}\n", result);
 }
 
 fn checksum(input: [] const [] const u8) u32{

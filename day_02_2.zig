@@ -4,7 +4,6 @@ const debug = std.debug;
 pub fn main() void {
     debug.warn("02-2: ");
     common_chars(input_02);
-    debug.warn("\n");
 }
 
 fn common_chars(ids: [] const [] const u8) void {

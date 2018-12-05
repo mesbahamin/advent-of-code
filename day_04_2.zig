@@ -6,7 +6,9 @@ const mem = std.mem;
 const biggest_boy: u32 = 3559;
 
 pub fn main() !void {
-    debug.warn("04-2: {}\n", try most_concentrated_on_slep());
+    var result = try most_concentrated_on_slep();
+    debug.assert(result == 136461);
+    debug.warn("04-2: {}\n", result);
 }
 
 fn most_concentrated_on_slep() !u32 {
@@ -113,46 +115,6 @@ fn most_slepful_minute(guard: u32) !u32 {
             most_slepful = @intCast(u32, m);
         }
     }
-    return most_slepful;
-}
-
-fn most_slepful_boy() !u32 {
-    var current_guard: u32 = 0;
-    var last_slep_min: u32 = 0;
-
-    var slep_counts = []u32{0} ** (biggest_boy + 1);
-
-    for (lines) |l| {
-        //Line.print(l);
-        var event_type = Line.get_event_type(l);
-
-        switch (event_type) {
-            Event.Begin => {
-                current_guard = try Line.get_guard(l);
-                last_slep_min = 0;
-            },
-            Event.Slep => {
-                last_slep_min = l.min;
-            },
-            Event.Wek => {
-                var slep_amt = l.min - last_slep_min;
-                //debug.warn("    Slep: {}\n", slep_amt);
-                slep_counts[current_guard] += slep_amt;
-                //debug.warn("    TOTAL: {}\n", slep_counts[current_guard]);
-            },
-            else => unreachable,
-        }
-    }
-
-    var most_slepful: u32 = 0;
-    for (slep_counts) |sleps, guard| {
-        // todo: can there be a tie?
-        if (sleps > slep_counts[most_slepful]) {
-            most_slepful = @intCast(u32, guard);
-        }
-    }
-
-    debug.warn("Most slepful boy is {} with {} minutes\n", most_slepful, slep_counts[most_slepful]);
     return most_slepful;
 }
 

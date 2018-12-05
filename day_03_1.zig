@@ -4,7 +4,9 @@ const fmt = std.fmt;
 const mem = std.mem;
 
 pub fn main() !void {
-    debug.warn("03-1: {}\n", try num_overlapped_squares(input_03));
+    var result = try num_overlapped_squares(input_03);
+    debug.assert(result == 118223);
+    debug.warn("03-1: {}\n", result);
 }
 
 fn num_overlapped_squares(input: []const []const u8) !u64 {

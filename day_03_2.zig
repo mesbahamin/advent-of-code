@@ -4,7 +4,9 @@ const fmt = std.fmt;
 const mem = std.mem;
 
 pub fn main() !void {
-    debug.warn("03-2: {}\n", try solitary_rect(input_03));
+    var result = try solitary_rect(input_03);
+    debug.assert(result == 412);
+    debug.warn("03-2: {}\n", result);
 }
 
 fn solitary_rect(input: []const []const u8) !usize {
@@ -62,57 +64,6 @@ fn solitary_rect(input: []const []const u8) !usize {
     rect_it.reset();
 
     return the_one;
-}
-
-fn num_overlapped_squares(input: []const []const u8) !u64 {
-    var allocator = std.heap.DirectAllocator.init().allocator;
-
-    var rects = std.ArrayList(Rect).init(&allocator);
-    defer rects.deinit();
-
-    var max = V2 { .x = 0, .y = 0 };
-    for (input) |claim_string| {
-        var r = Rect.from_claim(try Claim.parse(claim_string));
-        try rects.append(r);
-
-        if (r.se.x > max.x) max.x = r.se.x;
-        if (r.se.y > max.y) max.y = r.se.y;
-    }
-
-    //V2.print(max);
-
-    var squares = try allocator.alloc(u32, ((max.x + 1) * (max.y + 1)));
-    defer allocator.free(squares);
-    for (squares) |*s| {
-        s.* = 0;
-    }
-
-    var rect_it = rects.iterator();
-    while (rect_it.next()) |next| {
-        const rect_squares = try Rect.covered_squares(next, &allocator);
-        for (rect_squares) |s| {
-            squares[(s.x + ((max.x) * s.y))] += 1;
-        }
-    }
-
-    //buf_print_2d(squares, max.x + 1);
-
-    var total_count: u64 = 0;
-    for (squares) |count| {
-        if (count > 1) {
-            total_count += 1;
-        }
-    }
-    return total_count;
-}
-
-test "num_overlapped_squares" {
-    const test_input = []const []const u8 {
-        "#1 @ 1,3: 4x4",
-        "#2 @ 3,1: 4x4",
-        "#3 @ 5,5: 2x2",
-    };
-    debug.assert(4 == try num_overlapped_squares(test_input));
 }
 
 fn buf_print_2d(buf: []u32, stride: u32) void {

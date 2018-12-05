@@ -10,7 +10,9 @@ pub fn main() !void {
     var input01 = try get_file_contents(allocator, "input_01.txt");
     defer allocator.free(input01);
 
-    debug.warn("01-1: {}\n", total_sum(input01));
+    var result = try total_sum(input01);
+    debug.assert(result == 599);
+    debug.warn("01-1: {}\n", result);
 }
 
 fn total_sum(input: []const u8) !i32 {

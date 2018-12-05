@@ -10,7 +10,9 @@ pub fn main() !void {
     var input01 = try get_file_contents(allocator, "input_01.txt");
     defer allocator.free(input01);
 
-    debug.warn("01-2: {}\n", first_visited_twice(input01));
+    var result = try first_visited_twice(input01);
+    debug.assert(result == 81204);
+    debug.warn("01-2: {}\n", result);
 }
 
 fn first_visited_twice(input: []const u8) !i32 {

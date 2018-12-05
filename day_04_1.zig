@@ -6,7 +6,9 @@ const mem = std.mem;
 pub fn main() !void {
     var guard = try most_slepful_boy();
     var minute = try most_slepful_minute(guard);
-    debug.warn("04-1 {}\n", guard * minute);
+    var result = guard * minute;
+    debug.assert(result == 87681);
+    debug.warn("04-1 {}\n", result);
 }
 
 fn most_slepful_minute(guard: u32) !u32 {
@@ -23,21 +25,21 @@ fn most_slepful_minute(guard: u32) !u32 {
                 current_guard = try Line.get_guard(l);
                 last_slep_min = 0;
                 if (current_guard == guard) {
-                    Line.print(l);
+                    //Line.print(l);
                 }
             },
             Event.Slep => {
                 last_slep_min = l.min;
                 if (current_guard == guard) {
-                    Line.print(l);
+                    //Line.print(l);
                 }
             },
             Event.Wek => {
                 if (current_guard == guard) {
-                    Line.print(l);
+                    //Line.print(l);
                     var m: u32 = last_slep_min;
                     while (m < l.min) {
-                        debug.warn("{}\n", m);
+                        //debug.warn("{}\n", m);
                         minutes[m] += 1;
                         m += 1;
                     }
@@ -93,7 +95,7 @@ fn most_slepful_boy() !u32 {
         }
     }
 
-    debug.warn("Most slepful boy is {} with {} minutes\n", most_slepful, slep_counts[most_slepful]);
+    //debug.warn("Most slepful boy is {} with {} minutes\n", most_slepful, slep_counts[most_slepful]);
     return most_slepful;
 }
 

@@ -9,6 +9,7 @@ const destroyed_signifier: u8 = '*';
 pub fn main() !void {
     var allocator = &std.heap.DirectAllocator.init().allocator;
     var result = try react(allocator, input_polymer);
+    debug.assert(result.len == 9704);
     debug.warn("05-1 {}\n", result.len);
 }
 
@@ -89,7 +90,7 @@ pub fn join_strings(allocator: *mem.Allocator, string1: []const u8, string2: []c
 
 // Oww my stack!!!
 fn react_recursive(allocator: *mem.Allocator, polymer: []const u8) []const u8 {
-    debug.warn("{}\n", polymer);
+    //debug.warn("{}\n", polymer);
     for (polymer) |unit, i| {
         if (i + 1 < polymer.len) {
             var next_unit = polymer[i + 1];
