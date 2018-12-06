@@ -6,9 +6,13 @@ const math = std.math;
 
 pub fn main() !void {
     var allocator = &std.heap.DirectAllocator.init().allocator;
+
     var result1 = try biggest_finite_area(allocator, coordinates);
+    debug.assert(result1 == 2342);
     debug.warn("06-1: {}\n", result1);
+
     var result2 = try safe_area(coordinates, 10000);
+    debug.assert(result2 == 43302);
     debug.warn("06-2: {}\n", result2);
 }
 
@@ -48,15 +52,6 @@ fn safe_area(coords: []const V2, distance_threshold: usize) !u32 {
 
 test "safe area" {
     const test_threshold: usize = 32;
-    const test_coords = []const V2 {
-        point(1, 1),
-        point(1, 6),
-        point(8, 3),
-        point(3, 4),
-        point(5, 5),
-        point(8, 9),
-    };
-
     debug.assert(16 == try safe_area(test_coords, test_threshold));
 }
 
@@ -134,15 +129,6 @@ fn biggest_finite_area(allocator: *mem.Allocator, coords: []const V2) !u32 {
 }
 
 test "biggest finite area" {
-    const test_coords = []const V2 {
-        point(1, 1),
-        point(1, 6),
-        point(8, 3),
-        point(3, 4),
-        point(5, 5),
-        point(8, 9),
-    };
-
     var allocator = &std.heap.DirectAllocator.init().allocator;
     debug.assert(17 == try biggest_finite_area(allocator, test_coords));
 }
@@ -200,6 +186,15 @@ inline fn point(x: u32, y: u32) V2 {
         .y = y,
     };
 }
+
+const test_coords = []const V2 {
+    point(1, 1),
+    point(1, 6),
+    point(8, 3),
+    point(3, 4),
+    point(5, 5),
+    point(8, 9),
+};
 
 const coordinates = comptime block: {
     break :block []V2{
