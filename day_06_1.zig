@@ -6,8 +6,58 @@ const math = std.math;
 
 pub fn main() !void {
     var allocator = &std.heap.DirectAllocator.init().allocator;
-    var result = try biggest_finite_area(allocator, coordinates);
-    debug.warn("06-1: {}\n", result);
+    var result1 = try biggest_finite_area(allocator, coordinates);
+    debug.warn("06-1: {}\n", result1);
+    var result2 = try safe_area(coordinates, 10000);
+    debug.warn("06-2: {}\n", result2);
+}
+
+fn safe_area(coords: []const V2, distance_threshold: usize) !u32 {
+    var max = point(0, 0);
+    for (coords) |c| {
+        //V2.print(c);
+        if (c.x > max.x) {
+            max.x = c.x;
+        }
+        if (c.y > max.y) {
+            max.y = c.y;
+        }
+    }
+
+    const field_stride = max.x + 1;
+    const field_size: usize = field_stride * (max.y + 1);
+
+    var area: u32 = 0;
+    var cell_i: usize = 0;
+    while (cell_i < field_size) : (cell_i += 1) {
+        var distance_sum: usize = 0;
+        for (coords) |coord, coord_i| {
+            var dist = try manhattan_distance(point_from_index(cell_i, field_stride), coord);
+            distance_sum += dist;
+            if (distance_sum >= distance_threshold) {
+                break;
+            }
+        }
+        if (distance_sum < distance_threshold) {
+            area += 1;
+        }
+    }
+
+    return area;
+}
+
+test "safe area" {
+    const test_threshold: usize = 32;
+    const test_coords = []const V2 {
+        point(1, 1),
+        point(1, 6),
+        point(8, 3),
+        point(3, 4),
+        point(5, 5),
+        point(8, 9),
+    };
+
+    debug.assert(16 == try safe_area(test_coords, test_threshold));
 }
 
 fn biggest_finite_area(allocator: *mem.Allocator, coords: []const V2) !u32 {
