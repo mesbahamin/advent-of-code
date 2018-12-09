@@ -20,11 +20,52 @@ pub fn main() !void {
     defer allocator.free(nums);
 
     const nodes = try deserializeNodes(allocator, nums);
-    const result = sumMetadataEntries(nodes);
-    debug.warn("07-1: {}\n", result);
+    defer allocator.free(nodes);
+    defer {
+        // Yes, all this free-ing is rather silly for our purposes. Just
+        // trying out defer.
+        for (nodes) |n| {
+            n.deinit(allocator);
+        }
+    }
+
+    const result1 = sumAllMetadataEntries(nodes);
+    debug.warn("08-1: {}\n", result1);
+
+    const result2 = getRootNodeValue(nodes);
+    debug.warn("08-2: {}\n", result2);
 }
 
-fn sumMetadataEntries(nodes: []Node) u32 {
+fn getRootNodeValue(nodes: []Node) u32 {
+    var root_node = Node.linearSearch(nodes, 0) orelse unreachable;
+    return getNodeValue(nodes, root_node);
+}
+
+fn getNodeValue(nodes: []Node, node: Node) u32 {
+    var value: u32 = 0;
+
+    if (node.num_children == 0) {
+        value = node.sumMetadata();
+    } else {
+        for (node.metadata_entries) |e| {
+            if (e > 0 and e - 1 < node.child_ids.len) {
+                var child_id = node.child_ids[e - 1];
+                var child = Node.linearSearch(nodes, child_id) orelse unreachable;
+                value += getNodeValue(nodes, child);
+            }
+        }
+    }
+
+    return value;
+}
+
+test "deserialize and get root node value" {
+    var allocator = debug.global_allocator;
+    var nodes = try deserializeNodes(allocator, test_nums);
+    debug.assert(66 == getRootNodeValue(nodes));
+}
+
+fn sumAllMetadataEntries(nodes: []Node) u32 {
     var metadata_sum: u32 = 0;
     for (nodes) |n| {
         for (n.metadata_entries) |e| {
@@ -50,11 +91,14 @@ fn deserializeNodes(allocator: *mem.Allocator, nums: []const u32) ![]Node {
     var node_stack = std.ArrayList(Node).init(allocator);
     defer node_stack.deinit();
 
+    // This is only to get the process started, and should never be included in
+    // the returned list of nodes
     var root_node = Node {
-        .index = 0,
+        .id = 0,
         .num_children = 1,
         .num_metadata = 0,
         .num_children_found = 0,
+        .child_ids = try allocator.alloc(usize, 1),
         .metadata_entries = undefined,
     };
 
@@ -68,11 +112,10 @@ fn deserializeNodes(allocator: *mem.Allocator, nums: []const u32) ![]Node {
         switch (task) {
             Task.GetHeader => {
                 var node_index = num_index;
-                var num_children = nums[num_index];
-                num_index += 1;
-                var num_metadata = nums[num_index];
-                num_index += 1;
+                var num_children = consumeNum(nums, &num_index);
+                var num_metadata = consumeNum(nums, &num_index);
                 current_node = try Node.init(node_index, num_children, num_metadata, allocator);
+                parent_node.child_ids[parent_node.num_children_found] = current_node.id;
                 if (current_node.num_children != 0) {
                     task = Task.Descend;
                 } else {
@@ -91,8 +134,7 @@ fn deserializeNodes(allocator: *mem.Allocator, nums: []const u32) ![]Node {
             },
             Task.GetMetadata => {
                 for (current_node.metadata_entries) |*e| {
-                    e.* = nums[num_index];
-                    num_index += 1;
+                    e.* = consumeNum(nums, &num_index);
                 }
 
                 try nodes.append(current_node);
@@ -118,42 +160,81 @@ fn deserializeNodes(allocator: *mem.Allocator, nums: []const u32) ![]Node {
 }
 
 test "deserialize and sum metadata" {
-    var allocator = &std.heap.DirectAllocator.init().allocator;
+    var allocator = debug.global_allocator;
     var nodes = try deserializeNodes(allocator, test_nums);
-    debug.assert(138 == sumMetadataEntries(nodes));
+    debug.assert(138 == sumAllMetadataEntries(nodes));
+}
+
+// I was tempted to call this numNum
+fn consumeNum(nums: []const u32, index: *usize) u32 {
+    var num = nums[index.*];
+    index.* += 1;
+    return num;
 }
 
 const Node = struct {
-    index: usize,
+    id: usize,
     num_children: u32,
     num_metadata: u32,
     num_children_found: u32,
+    child_ids: []usize,
     metadata_entries: []u32,
 
-    pub fn init(i: usize, nc: u32, nm: u32, allocator: *mem.Allocator) !Node {
+    pub fn init(id: usize, nc: u32, nm: u32, allocator: *mem.Allocator) !Node {
+        var ci_buf = try allocator.alloc(usize, nc);
+        for (ci_buf) |*ci| {
+            ci.* = 0;
+        }
         var me_buf = try allocator.alloc(u32, nm);
-        for (me_buf) |*me| {
-            me.* = 0;
+        for (me_buf) |*e| {
+            e.* = 0;
         }
         return Node {
-            .index = i,
+            .id = id,
             .num_children = nc,
             .num_metadata = nm,
             .num_children_found = 0,
+            .child_ids = ci_buf,
             .metadata_entries = me_buf,
         };
     }
 
     pub fn deinit(self: Node, allocator: *mem.Allocator) void {
+        allocator.free(self.child_ids);
         allocator.free(self.metadata_entries);
     }
 
     pub fn print(self: Node) void {
-        logDebug("[{}]: ({}/{}, {}) | ", self.index, self.num_children_found, self.num_children, self.num_metadata);
+        logDebug("[{}]: ({}/{}, {}) | ", self.id, self.num_children_found, self.num_children, self.num_metadata);
         for (self.metadata_entries) |e| {
             logDebug("{} ", e);
         }
-        logDebug("\n");
+        logDebug("| (");
+        for (self.child_ids) |c| {
+            logDebug("{} ", c);
+        }
+        logDebug(")\n");
+    }
+
+    pub fn lessThan(l: Node, r: Node) bool {
+        return l.id < r.id;
+    }
+
+    pub fn linearSearch(nodes: []Node, node_id: usize) ?Node {
+        for (nodes) |n, i| {
+            if (n.id == node_id) {
+                return n;
+            }
+        }
+        return null;
+    }
+
+    pub fn sumMetadata(self: Node) u32 {
+        var sum: u32 = 0;
+        for (self.metadata_entries) |e| {
+            sum += e;
+        }
+        return sum;
     }
 };
 
@@ -168,7 +249,7 @@ fn getNums(allocator: *mem.Allocator, buf: []const u8) ![]u32 {
 }
 
 test "get nums" {
-    var allocator = &std.heap.DirectAllocator.init().allocator;
+    var allocator = debug.global_allocator;
     const test_buf = "2 3 0 3 10 11 12 1 1 0 1 99 2 1 1 2";
     debug.assert(mem.eql(u32, test_nums, try getNums(allocator, test_buf)));
 }
