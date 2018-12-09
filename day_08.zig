@@ -19,19 +19,32 @@ pub fn main() !void {
     }
     defer allocator.free(nums);
 
-    const result = try sumMetadataEntries(allocator, nums);
+    const nodes = try deserializeNodes(allocator, nums);
+    const result = sumMetadataEntries(nodes);
     debug.warn("07-1: {}\n", result);
 }
 
-fn sumMetadataEntries(allocator: *mem.Allocator, nums: []const u32) !u32 {
+fn sumMetadataEntries(nodes: []Node) u32 {
+    var metadata_sum: u32 = 0;
+    for (nodes) |n| {
+        for (n.metadata_entries) |e| {
+            metadata_sum += e;
+        }
+    }
+
+    return metadata_sum;
+}
+
+/// Caller is responsible for freeing returned nodes.
+fn deserializeNodes(allocator: *mem.Allocator, nums: []const u32) ![]Node {
     const Task = enum {
         GetHeader,
         Descend,
         Ascend,
         GetMetadata,
     };
+
     var nodes = std.ArrayList(Node).init(allocator);
-    defer nodes.deinit();
 
     // I need to manage this myself since I've decided not to use recursion
     var node_stack = std.ArrayList(Node).init(allocator);
@@ -100,21 +113,14 @@ fn sumMetadataEntries(allocator: *mem.Allocator, nums: []const u32) !u32 {
         logDebug("C");
         current_node.print();
     }
-    // Why did I put myself through that?
 
-    var metadata_sum: u32 = 0;
-    for (nodes.toSlice()) |n| {
-        for (n.metadata_entries) |e| {
-            metadata_sum += e;
-        }
-    }
-
-    return metadata_sum;
+    return nodes.toSlice();
 }
 
-test "sum metadata entries" {
+test "deserialize and sum metadata" {
     var allocator = &std.heap.DirectAllocator.init().allocator;
-    debug.assert(138 == try sumMetadataEntries(allocator, test_nums));
+    var nodes = try deserializeNodes(allocator, test_nums);
+    debug.assert(138 == sumMetadataEntries(nodes));
 }
 
 const Node = struct {
@@ -126,6 +132,9 @@ const Node = struct {
 
     pub fn init(i: usize, nc: u32, nm: u32, allocator: *mem.Allocator) !Node {
         var me_buf = try allocator.alloc(u32, nm);
+        for (me_buf) |*me| {
+            me.* = 0;
+        }
         return Node {
             .index = i,
             .num_children = nc,
