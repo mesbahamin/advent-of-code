@@ -1,5 +1,6 @@
 const std = @import("std");
 const debug = std.debug;
+const heap = std.heap;
 const LinkedList = std.LinkedList;
 const mem = std.mem;
 
@@ -9,6 +10,7 @@ const debug_logging: bool = false;
 pub fn main() void {
     var allocator = &std.heap.DirectAllocator.init().allocator;
     debug.warn("09-1: {}\n", computeHighScore(allocator, 465, 71498));
+    debug.warn("09-2: {}\n", computeHighScore(allocator, 465, 71498 * 100));
 }
 
 fn printTurn(player_turn: ?u32, circle: LinkedList(u32), current_num: u32) void {
@@ -41,10 +43,18 @@ fn computeHighScore(allocator: *mem.Allocator, num_players: u32, num_marbles: u3
         s.* = 0;
     }
 
+    const buf = try allocator.alloc(u8, num_marbles * @sizeOf(Node));
+    defer allocator.free(buf);
+
+    // TODO: Why does this explode my memory usage!?
+    //const node_allocator = allocator;
+
+    const node_allocator = &heap.FixedBufferAllocator.init(buf[0..]).allocator;
+
     var circle = LinkedList(u32).init();
 
-    var initial_marble = try circle.createNode(0, allocator);
-    defer circle.destroyNode(initial_marble, allocator);
+    var initial_marble = try circle.createNode(0, node_allocator);
+    defer circle.destroyNode(initial_marble, node_allocator);
 
     circle.first = initial_marble;
     circle.last = circle.first;
@@ -56,13 +66,12 @@ fn computeHighScore(allocator: *mem.Allocator, num_players: u32, num_marbles: u3
     var last_played: u32 = 0;
     var turn: u32 = 1;
 
-    printTurn(null, circle, current.data);
     while (last_played < num_marbles) : (last_played += 1) {
         var to_be_played = last_played + 1;
 
         if (to_be_played % 23 == 0) {
             var to_remove = current.prev.?.prev.?.prev.?.prev.?.prev.?.prev.?.prev orelse unreachable;
-            defer circle.destroyNode(to_remove, allocator);
+            defer circle.destroyNode(to_remove, node_allocator);
 
             var to_make_current = to_remove.next orelse unreachable;
             circle.remove(to_remove);
@@ -70,12 +79,11 @@ fn computeHighScore(allocator: *mem.Allocator, num_players: u32, num_marbles: u3
 
             scores[turn] += (to_be_played + to_remove.data);
         } else {
-            var new_marble = try circle.createNode(to_be_played, allocator);
+            var new_marble = try circle.createNode(to_be_played, node_allocator);
             var two_clockwise_from_current = current.next.?.next orelse unreachable;
             circle.insertBefore(two_clockwise_from_current, new_marble);
             current = new_marble;
         }
-        printTurn(turn + 1, circle, current.data);
         turn += 1;
         turn %= num_players;
     }
