@@ -8,6 +8,67 @@ const grid_side_len = 300;
 pub fn main() void {
     const result = regionOfHighestTotalPower(grid_serial_number);
     debug.warn("11-1: {}\n", result);
+
+    // Horrible brute-force algorithm. Uncomment at your own risk.
+    //debug.warn("11-2: ");
+    //regionOfHighestTotalPowerUltimateSupremeExtremeBruteForceImSoTiredExtravaganza(grid_serial_number);
+}
+
+fn regionOfHighestTotalPowerUltimateSupremeExtremeBruteForceImSoTiredExtravaganza(gsn: u32) void {
+    var grid = []i32{0} ** (grid_side_len * grid_side_len);
+
+    for (grid) |*cell, i| {
+        var coord = point_from_index(i, grid_side_len);
+
+        // grid is 1 based, though array is 0 based
+        coord.x += 1;
+        coord.y += 1;
+
+        cell.* = getFuelCellPower(coord.x, coord.y, gsn);
+    }
+
+    var highest_highest_power: i32 = 0;
+    var highest_highest_power_region = V2.init(1, 1);
+    var highest_square_side_len: u32 = 1;
+
+    var square_side_len: u32 = 1;
+    while (square_side_len <= 300) : (square_side_len += 1) {
+        debug.warn("{}\n", square_side_len);
+        var highest_power: i32 = 0;
+        var highest_power_region = V2.init(1, 1);
+
+        for (grid) |cell, i| {
+            const array_coord = point_from_index(i, grid_side_len);
+            const cell_coord = V2.init(array_coord.x + 1, array_coord.y + 1);
+
+            const search_threshold = grid_side_len - square_side_len;
+            if (cell_coord.x >= search_threshold or cell_coord.y >= search_threshold) {
+                continue;
+            }
+
+            var sum: i32 = 0;
+            var square_x: u32 = 0;
+            while (square_x < square_side_len) : (square_x += 1) {
+                var square_y: u32 = 0;
+                while (square_y < square_side_len) : (square_y += 1) {
+                    sum += grid[index_from_point(array_coord.x + square_x, array_coord.y + square_y, grid_side_len)];
+                }
+            }
+
+            if (sum > highest_power) {
+                highest_power = sum;
+                highest_power_region = cell_coord;
+            }
+        }
+
+        if (highest_power > highest_highest_power) {
+            highest_highest_power = highest_power;
+            highest_highest_power_region = highest_power_region;
+            highest_square_side_len = square_side_len;
+        }
+    }
+
+    debug.warn("{},{}\n", highest_highest_power_region, highest_square_side_len);
 }
 
 fn regionOfHighestTotalPower(gsn: u32) V2{
@@ -23,33 +84,33 @@ fn regionOfHighestTotalPower(gsn: u32) V2{
         cell.* = getFuelCellPower(coord.x, coord.y, gsn);
     }
 
-    var highest_power: i32 = grid[0];
+    var square_side_len: u32 = 3;
+    var highest_power: i32 = 0;
     var highest_power_region = V2.init(1, 1);
 
     for (grid) |cell, i| {
         const array_coord = point_from_index(i, grid_side_len);
         const cell_coord = V2.init(array_coord.x + 1, array_coord.y + 1);
 
-        if (cell_coord.x >= grid_side_len - 3 or cell_coord.y >= grid_side_len - 3) {
+        const search_threshold = grid_side_len - square_side_len;
+        if (cell_coord.x >= search_threshold or cell_coord.y >= search_threshold) {
             continue;
         }
 
-        var sum = grid[index_from_point(array_coord.x + 0, array_coord.y + 0, grid_side_len)]
-            + grid[index_from_point(array_coord.x + 1, array_coord.y + 0, grid_side_len)]
-            + grid[index_from_point(array_coord.x + 2, array_coord.y + 0, grid_side_len)]
-            + grid[index_from_point(array_coord.x + 0, array_coord.y + 1, grid_side_len)]
-            + grid[index_from_point(array_coord.x + 1, array_coord.y + 1, grid_side_len)]
-            + grid[index_from_point(array_coord.x + 2, array_coord.y + 1, grid_side_len)]
-            + grid[index_from_point(array_coord.x + 0, array_coord.y + 2, grid_side_len)]
-            + grid[index_from_point(array_coord.x + 1, array_coord.y + 2, grid_side_len)]
-            + grid[index_from_point(array_coord.x + 2, array_coord.y + 2, grid_side_len)];
+        var sum: i32 = 0;
+        var square_x: u32 = 0;
+        while (square_x < square_side_len) : (square_x += 1) {
+            var square_y: u32 = 0;
+            while (square_y < square_side_len) : (square_y += 1) {
+                sum += grid[index_from_point(array_coord.x + square_x, array_coord.y + square_y, grid_side_len)];
+            }
+        }
 
         if (sum > highest_power) {
             highest_power = sum;
             highest_power_region = cell_coord;
         }
     }
-
     return highest_power_region;
 }
 
