@@ -10,7 +10,7 @@ pub fn main() !void {
     var program: [input.len]u32 = undefined;
     mem.copy(u32, program[0..input.len], input[0..input.len]);
 
-    var initial_output = try get_program_output(allocator, program, 12, 2);
+    var initial_output = try get_program_output(allocator, program[0..program.len], 12, 2);
     dbg.warn("02-1: {}\n", initial_output);
 
     var noun: u32 = 0;
@@ -20,7 +20,7 @@ pub fn main() !void {
         noun += 1;
     }) {
         while (verb < 99) : (verb += 1) {
-            if ((try get_program_output(allocator, program, noun, verb)) == 19690720) {
+            if ((try get_program_output(allocator, program[0..program.len], noun, verb)) == 19690720) {
                 break :search;
             }
         }
@@ -85,14 +85,10 @@ test "run intcode program" {
     dbg.assert(mem.eql(u32, try run_intcode_program(a, [_]u32{ 1, 1, 1, 4, 99, 5, 6, 0, 99 }), [_]u32{ 30, 1, 1, 4, 2, 5, 6, 0, 99 }));
 }
 
-fn get_program_output(allocator: *mem.Allocator, program: []const u32, noun: u32, verb: u32) !u32 {
-    const num_codes = program.len;
-    var memory = try allocator.alloc(u32, num_codes);
-    mem.copy(u32, memory[0..num_codes], program[0..num_codes]);
-
-    memory[1] = noun;
-    memory[2] = verb;
-    var final_state = try run_intcode_program(allocator, memory);
+fn get_program_output(allocator: *mem.Allocator, program: []u32, noun: u32, verb: u32) !u32 {
+    program[1] = noun;
+    program[2] = verb;
+    var final_state = try run_intcode_program(allocator, program);
     return final_state[0];
 }
 
