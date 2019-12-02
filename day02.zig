@@ -10,11 +10,22 @@ pub fn main() !void {
     var program: [input.len]u32 = undefined;
     mem.copy(u32, program[0..input.len], input[0..input.len]);
 
-    program[1] = 12;
-    program[2] = 2;
-    var final_state = try run_intcode_program(allocator, program);
+    var initial_output = try get_program_output(allocator, program, 12, 2);
+    dbg.warn("02-1: {}\n", initial_output);
 
-    dbg.warn("02-1: {}\n", final_state[0]);
+    var noun: u32 = 0;
+    var verb: u32 = 0;
+    search: while (noun < 99) : ({
+        verb = 0;
+        noun += 1;
+    }) {
+        while (verb < 99) : (verb += 1) {
+            if ((try get_program_output(allocator, program, noun, verb)) == 19690720) {
+                break :search;
+            }
+        }
+    }
+    dbg.warn("02-2: {}\n", (100 * noun) + verb);
 }
 
 const OpCode = enum(u32) {
@@ -25,32 +36,45 @@ const OpCode = enum(u32) {
 
 fn run_intcode_program(allocator: *mem.Allocator, program: []const u32) ![]const u32 {
     const num_codes = program.len;
-    var p = try allocator.alloc(u32, num_codes);
-    mem.copy(u32, p[0..num_codes], program[0..num_codes]);
+    var memory = try allocator.alloc(u32, num_codes);
+    mem.copy(u32, memory[0..num_codes], program[0..num_codes]);
+
     var opcode = OpCode.Add;
     var instruction_pointer: usize = 0;
-    while (true) : (instruction_pointer += 4) {
+    while (true) {
         dbg.assert(instruction_pointer < num_codes);
-        opcode = @intToEnum(OpCode, p[instruction_pointer]);
+        opcode = @intToEnum(OpCode, memory[instruction_pointer]);
+        var instruction_num_values: u32 = undefined;
         switch (opcode) {
             .Add => {
-                var a = p[instruction_pointer + 1];
-                var b = p[instruction_pointer + 2];
-                var dest = p[instruction_pointer + 3];
-                p[dest] = p[a] + p[b];
+                instruction_num_values = 4;
+                var param1 = memory[instruction_pointer + 1];
+                var param2 = memory[instruction_pointer + 2];
+                var param3 = memory[instruction_pointer + 3];
+                var a = memory[param1];
+                var b = memory[param2];
+                var dest_address = &memory[param3];
+                dest_address.* = a + b;
             },
             .Mult => {
-                var a = p[instruction_pointer + 1];
-                var b = p[instruction_pointer + 2];
-                var dest = p[instruction_pointer + 3];
-                p[dest] = p[a] * p[b];
+                instruction_num_values = 4;
+                var param1 = memory[instruction_pointer + 1];
+                var param2 = memory[instruction_pointer + 2];
+                var param3 = memory[instruction_pointer + 3];
+                var a = memory[param1];
+                var b = memory[param2];
+                var dest_address = &memory[param3];
+                dest_address.* = a * b;
             },
             .Term => {
+                instruction_num_values = 1;
                 break;
             },
         }
+        instruction_pointer += instruction_num_values;
     }
-    return p;
+
+    return memory;
 }
 
 test "run intcode program" {
@@ -59,6 +83,17 @@ test "run intcode program" {
     dbg.assert(mem.eql(u32, try run_intcode_program(a, [_]u32{ 2, 3, 0, 3, 99 }), [_]u32{ 2, 3, 0, 6, 99 }));
     dbg.assert(mem.eql(u32, try run_intcode_program(a, [_]u32{ 2, 4, 4, 5, 99, 0 }), [_]u32{ 2, 4, 4, 5, 99, 9801 }));
     dbg.assert(mem.eql(u32, try run_intcode_program(a, [_]u32{ 1, 1, 1, 4, 99, 5, 6, 0, 99 }), [_]u32{ 30, 1, 1, 4, 2, 5, 6, 0, 99 }));
+}
+
+fn get_program_output(allocator: *mem.Allocator, program: []const u32, noun: u32, verb: u32) !u32 {
+    const num_codes = program.len;
+    var memory = try allocator.alloc(u32, num_codes);
+    mem.copy(u32, memory[0..num_codes], program[0..num_codes]);
+
+    memory[1] = noun;
+    memory[2] = verb;
+    var final_state = try run_intcode_program(allocator, memory);
+    return final_state[0];
 }
 
 const input = [_]u32{
