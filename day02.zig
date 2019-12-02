@@ -15,11 +15,11 @@ pub fn main() !void {
 
     var noun: u32 = 0;
     var verb: u32 = 0;
-    search: while (noun < 99) : ({
+    search: while (noun < 100) : ({
         verb = 0;
         noun += 1;
     }) {
-        while (verb < 99) : (verb += 1) {
+        while (verb < 100) : (verb += 1) {
             if ((try get_program_output(allocator, program[0..program.len], noun, verb)) == 19690720) {
                 break :search;
             }
