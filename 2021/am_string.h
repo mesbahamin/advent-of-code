@@ -182,6 +182,7 @@ internal StrList am_str_split(MemArena *arena, Str s, u8 *split_chars, u64 split
         for (u64 i = 0; i < split_char_count; i++) {
             if (split_chars[i] == *cursor) {
                 split_byte = true;
+                break;
             }
         }
 
@@ -192,6 +193,10 @@ internal StrList am_str_split(MemArena *arena, Str s, u8 *split_chars, u64 split
             split_beginning = cursor + 1;
         }
         cursor++;
+    }
+
+    if (split_beginning < cursor) {
+        am_str_list_append(arena, &list, am_str_from_range(split_beginning, cursor));
     }
 
     return list;
